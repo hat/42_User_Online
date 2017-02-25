@@ -15,22 +15,33 @@ if ARGV[0]
 		file.each_line do |line|
 
 			# Remove newlines from every user login
-			login = line.delete!("\n")
+			login = line.delete("\n")
+			# Formats login output
+			log_text = "#{login}"
+			log_text = log_text.ljust(15)
 
-			if login
+			# Checks if login exists or was just newline
+			if login != ""
 				begin
-					response = token.get("/v2/users/#{login}/locations")
-					if response.status == 200
-						if !response.parsed[0]["end_at"]
-							puts "#{login} : #{response.parsed[0]["host"]}"
+					success = false
+					# Runs until server responds
+					until success
+						response = token.get("/v2/users/#{login}/locations")
+						if response.status == 200
+							success = true
+							# Checks if user ended session
+							if !response.parsed[0]["end_at"]
+								puts "#{log_text} : \e[32m#{response.parsed[0]["host"]}\e[0m"
+							else
+								puts "#{log_text} : \e[33mnot active in cluster\e[0m"
+							end
 						else
-							puts "#{login} : not active in cluster"
+							puts "Server not responding...\e[0m"
+							sleep 10
 						end
-					else
-						puts "Invalid response from server..."
 					end
 				rescue
-					puts "#{login} : cannot find user"
+					puts "#{log_text} : \e[31mcannot find user\e[0m"
 				end
 			end
 		end
@@ -39,5 +50,5 @@ if ARGV[0]
 		puts "File not found"
 	end
 else
-	puts "USAGE: ruby Ceryneian_hind.rb {filename}"
+	puts "USAGE: ruby #{$0} {filename}"
 end
